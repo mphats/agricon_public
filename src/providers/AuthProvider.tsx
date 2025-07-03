@@ -42,15 +42,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
-  const fetchProfile = async (userId: string): Promise<Profile> => {
+  const fetchProfileWithTimeout = async (userId: string): Promise<Profile> => {
+    console.log('Fetching profile for user with timeout:', userId);
+    
+    // Create a timeout promise
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Profile fetch timeout'));
+      }, 5000); // 5 second timeout
+    });
+
     try {
-      console.log('Fetching profile for user:', userId);
-      
-      const { data, error } = await supabase
+      // Race between the actual fetch and timeout
+      const fetchPromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
+
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
 
       if (error) {
         if (error.code === 'PGRST116') {
@@ -64,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Profile fetched successfully:', data);
       return data;
     } catch (error) {
-      console.error('Error in fetchProfile:', error);
+      console.error('Error in fetchProfileWithTimeout:', error);
       return createDefaultProfile(userId);
     }
   };
@@ -72,39 +82,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleAuthStateChange = async (session: Session | null) => {
     console.log('Auth state changed:', session ? 'authenticated' : 'unauthenticated');
     
-    setSession(session);
-    setUser(session?.user ?? null);
-    
-    if (session?.user) {
-      try {
-        const profileData = await fetchProfile(session.user.id);
+    try {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        console.log('Fetching profile for authenticated user...');
+        const profileData = await fetchProfileWithTimeout(session.user.id);
         setProfile(profileData);
         console.log('Profile set successfully');
-      } catch (error) {
-        console.error('Profile fetch failed:', error);
+      } else {
+        setProfile(null);
+        console.log('No user, setting profile to null');
+      }
+    } catch (error) {
+      console.error('Error in handleAuthStateChange:', error);
+      if (session?.user) {
         const defaultProfile = createDefaultProfile(session.user.id);
         setProfile(defaultProfile);
         console.log('Using default profile due to error');
       }
-    } else {
-      setProfile(null);
+    } finally {
+      setLoading(false);
+      console.log('Loading state set to false');
     }
-    
-    setLoading(false);
-    console.log('Loading state set to false');
   };
 
   useEffect(() => {
     console.log('AuthProvider initializing...');
     
+    // Set a maximum initialization timeout
+    const initTimeout = setTimeout(() => {
+      console.log('Initialization timeout reached, forcing loading to false');
+      setLoading(false);
+    }, 10000); // 10 second maximum wait
+    
     // Get initial session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
+      clearTimeout(initTimeout);
       if (error) {
         console.error('Error getting session:', error);
         setLoading(false);
         return;
       }
       handleAuthStateChange(session);
+    }).catch((error) => {
+      clearTimeout(initTimeout);
+      console.error('Session fetch failed:', error);
+      setLoading(false);
     });
 
     // Listen for auth changes
@@ -116,6 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     return () => {
+      clearTimeout(initTimeout);
       subscription.unsubscribe();
     };
   }, []);
