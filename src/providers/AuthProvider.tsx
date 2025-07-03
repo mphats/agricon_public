@@ -27,18 +27,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return {
       id: userId,
       is_admin: false,
-      first_name: '',
-      last_name: '',
+      first_name: null,
+      last_name: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       farm_size_acres: null,
       location_coordinates: null,
       location_district: null,
       phone_number: null,
-      phone_verified: null,
-      preferred_language: null,
+      phone_verified: false,
+      preferred_language: 'en',
       primary_crops: null,
-      role: null
+      role: 'farmer'
     };
   };
 
@@ -54,16 +54,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         if (error.code === 'PGRST116') {
-          console.log('Profile not found, creating default profile');
+          console.log('Profile not found, using default profile');
           return createDefaultProfile(userId);
         }
-        throw error;
+        console.error('Profile fetch error:', error);
+        return createDefaultProfile(userId);
       }
 
-      console.log('Profile fetched successfully');
+      console.log('Profile fetched successfully:', data);
       return data;
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error in fetchProfile:', error);
       return createDefaultProfile(userId);
     }
   };
@@ -78,22 +79,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const profileData = await fetchProfile(session.user.id);
         setProfile(profileData);
+        console.log('Profile set successfully');
       } catch (error) {
         console.error('Profile fetch failed:', error);
-        setProfile(createDefaultProfile(session.user.id));
+        const defaultProfile = createDefaultProfile(session.user.id);
+        setProfile(defaultProfile);
+        console.log('Using default profile due to error');
       }
     } else {
       setProfile(null);
     }
     
     setLoading(false);
+    console.log('Loading state set to false');
   };
 
   useEffect(() => {
     console.log('AuthProvider initializing...');
     
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Error getting session:', error);
+        setLoading(false);
+        return;
+      }
       handleAuthStateChange(session);
     });
 
