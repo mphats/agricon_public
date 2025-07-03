@@ -30,30 +30,39 @@ export const KaggleDatasetImporter = () => {
       console.log('Starting Kaggle dataset import...', data);
       
       // Get the current session to include auth token
-      const { data: session } = await supabase.auth.getSession();
-      if (!session.session?.access_token) {
+      const { data: session, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session.session?.access_token) {
+        console.error('Session error:', sessionError);
         throw new Error('No valid session found. Please sign in again.');
       }
 
-      const { data: result, error } = await supabase.functions.invoke('kaggle-dataset-import', {
-        body: {
-          datasetName: data.datasetName,
-          trainDatasetName: data.trainDatasetName,
-          cropType: data.cropType,
-          description: data.description
-        },
-        headers: {
-          Authorization: `Bearer ${session.session.access_token}`,
+      console.log('Session found, calling edge function...');
+
+      try {
+        const { data: result, error } = await supabase.functions.invoke('kaggle-dataset-import', {
+          body: {
+            datasetName: data.datasetName,
+            trainDatasetName: data.trainDatasetName,
+            cropType: data.cropType,
+            description: data.description
+          },
+          headers: {
+            Authorization: `Bearer ${session.session.access_token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (error) {
+          console.error('Edge function error:', error);
+          throw new Error(error.message || 'Failed to import dataset');
         }
-      });
 
-      if (error) {
-        console.error('Edge function error:', error);
-        throw new Error(error.message || 'Failed to import dataset');
+        console.log('Import successful:', result);
+        return result;
+      } catch (fetchError) {
+        console.error('Import failed:', fetchError);
+        throw new Error(`Import failed: ${fetchError.message || 'Unknown error'}`);
       }
-
-      console.log('Import successful:', result);
-      return result;
     },
     onSuccess: (result) => {
       console.log('Import completed successfully:', result);
