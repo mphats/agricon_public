@@ -6,6 +6,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 interface KaggleDatasetRequest {
@@ -16,8 +17,12 @@ interface KaggleDatasetRequest {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 200
+    });
   }
 
   try {
@@ -95,6 +100,18 @@ serve(async (req) => {
     const zipData = await downloadResponse.arrayBuffer();
     console.log('Dataset downloaded, size:', zipData.byteLength, 'bytes');
 
+    // Get current user
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) {
+      return new Response(JSON.stringify({
+        error: 'Authentication required',
+        message: 'User must be authenticated to import datasets'
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     // Create training dataset record
     const datasetDisplayName = trainDatasetName || `Kaggle Dataset: ${datasetName}`;
     const { data: trainingDataset, error: datasetError } = await supabaseClient
@@ -104,7 +121,7 @@ serve(async (req) => {
         description: description || `Imported from Kaggle dataset: ${datasetName}. ${metadata.subtitle || ''}`,
         crop_type: cropType || 'other',
         status: 'processing',
-        created_by: (await supabaseClient.auth.getUser()).data.user?.id
+        created_by: user.id
       })
       .select()
       .single();
@@ -187,7 +204,7 @@ serve(async (req) => {
         dataset_id: trainingDataset.id,
         status: 'training',
         training_started_at: new Date().toISOString(),
-        created_by: (await supabaseClient.auth.getUser()).data.user?.id,
+        created_by: user.id,
         hyperparameters: {
           dataset_source: 'kaggle',
           dataset_name: datasetName,
@@ -219,7 +236,7 @@ serve(async (req) => {
         started_at: new Date().toISOString(),
         progress_percentage: 25,
         logs: `Dataset imported successfully from Kaggle: ${datasetName}\nDataset size: ${(zipData.byteLength / 1024 / 1024).toFixed(2)} MB\nStarting model training...`,
-        created_by: (await supabaseClient.auth.getUser()).data.user?.id
+        created_by: user.id
       })
       .select()
       .single();
