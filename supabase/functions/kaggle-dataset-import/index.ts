@@ -17,8 +17,11 @@ interface KaggleDatasetRequest {
 }
 
 serve(async (req) => {
+  console.log('Edge function called with method:', req.method);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight request');
     return new Response(null, { 
       headers: corsHeaders,
       status: 200
@@ -26,16 +29,50 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Processing request...');
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+
+    // Get authorization header to validate user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.log('No authorization header found');
+      return new Response(JSON.stringify({
+        error: 'Authorization required',
+        message: 'Please provide a valid authorization token'
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Verify user authentication
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
+
+    if (authError || !user) {
+      console.log('Authentication failed:', authError);
+      return new Response(JSON.stringify({
+        error: 'Authentication failed',
+        message: 'Invalid or expired token'
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log('User authenticated:', user.id);
 
     // Get Kaggle credentials from environment
     const kaggleUsername = Deno.env.get('KAGGLE_USERNAME');
     const kaggleKey = Deno.env.get('KAGGLE_KEY');
 
     if (!kaggleUsername || !kaggleKey) {
+      console.log('Kaggle credentials not found');
       return new Response(JSON.stringify({
         error: 'Kaggle credentials not configured',
         message: 'Please set KAGGLE_USERNAME and KAGGLE_KEY environment variables'
@@ -45,7 +82,8 @@ serve(async (req) => {
       });
     }
 
-    const { datasetName, trainDatasetName, cropType, description }: KaggleDatasetRequest = await req.json();
+    const requestBody = await req.json();
+    const { datasetName, trainDatasetName, cropType, description }: KaggleDatasetRequest = requestBody;
     
     console.log('Starting Kaggle dataset import:', { datasetName, trainDatasetName });
 
@@ -99,18 +137,6 @@ serve(async (req) => {
     // Get the zip file as array buffer
     const zipData = await downloadResponse.arrayBuffer();
     console.log('Dataset downloaded, size:', zipData.byteLength, 'bytes');
-
-    // Get current user
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) {
-      return new Response(JSON.stringify({
-        error: 'Authentication required',
-        message: 'User must be authenticated to import datasets'
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
 
     // Create training dataset record
     const datasetDisplayName = trainDatasetName || `Kaggle Dataset: ${datasetName}`;
@@ -266,7 +292,7 @@ serve(async (req) => {
     console.error('Kaggle dataset import error:', error);
     return new Response(JSON.stringify({
       error: 'Import failed',
-      message: error.message
+      message: error.message || 'An unexpected error occurred'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

@@ -27,22 +27,39 @@ export const KaggleDatasetImporter = () => {
 
   const importDataset = useMutation({
     mutationFn: async (data: typeof importData) => {
+      console.log('Starting Kaggle dataset import...', data);
+      
+      // Get the current session to include auth token
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session?.access_token) {
+        throw new Error('No valid session found. Please sign in again.');
+      }
+
       const { data: result, error } = await supabase.functions.invoke('kaggle-dataset-import', {
         body: {
           datasetName: data.datasetName,
           trainDatasetName: data.trainDatasetName,
           cropType: data.cropType,
           description: data.description
+        },
+        headers: {
+          Authorization: `Bearer ${session.session.access_token}`,
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Failed to import dataset');
+      }
+
+      console.log('Import successful:', result);
       return result;
     },
     onSuccess: (result) => {
+      console.log('Import completed successfully:', result);
       toast({
         title: "Dataset Import Started",
-        description: `Successfully imported ${result.import_stats.dataset_size_mb}MB dataset from Kaggle. Training job created.`,
+        description: `Successfully imported ${result.import_stats?.dataset_size_mb || 'N/A'}MB dataset from Kaggle. Training job created.`,
       });
       setIsImportDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ['training-datasets'] });
@@ -50,6 +67,7 @@ export const KaggleDatasetImporter = () => {
       queryClient.invalidateQueries({ queryKey: ['ai-models'] });
     },
     onError: (error: any) => {
+      console.error('Import failed:', error);
       toast({
         title: "Import Failed",
         description: error.message || "Failed to import dataset from Kaggle",
