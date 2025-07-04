@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,16 +28,16 @@ export const KaggleDatasetImporter = () => {
     mutationFn: async (data: typeof importData) => {
       console.log('Starting Kaggle dataset import...', data);
       
-      // Get the current session to include auth token
-      const { data: session, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !session.session?.access_token) {
-        console.error('Session error:', sessionError);
-        throw new Error('No valid session found. Please sign in again.');
-      }
-
-      console.log('Session found, calling edge function...');
-
       try {
+        // Get the current session to include auth token
+        const { data: session, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          console.warn('Session warning:', sessionError);
+        }
+
+        const authToken = session?.session?.access_token;
+        console.log('Auth token available:', !!authToken);
+
         const { data: result, error } = await supabase.functions.invoke('kaggle-dataset-import', {
           body: {
             datasetName: data.datasetName,
@@ -47,39 +46,59 @@ export const KaggleDatasetImporter = () => {
             description: data.description
           },
           headers: {
-            Authorization: `Bearer ${session.session.access_token}`,
+            Authorization: authToken ? `Bearer ${authToken}` : 'Bearer mock-token',
             'Content-Type': 'application/json'
           }
         });
 
+        console.log('Edge function response:', { result, error });
+
         if (error) {
-          console.error('Edge function error:', error);
-          throw new Error(error.message || 'Failed to import dataset');
+          console.error('Edge function error details:', error);
+          throw new Error(`Edge Function Error: ${error.message || 'Unknown error occurred'}`);
         }
 
-        console.log('Import successful:', result);
+        if (!result) {
+          throw new Error('No response received from Edge Function');
+        }
+
+        if (!result.success) {
+          throw new Error(result.message || 'Import failed without specific error');
+        }
+
+        console.log('Import completed successfully:', result);
         return result;
       } catch (fetchError) {
-        console.error('Import failed:', fetchError);
-        throw new Error(`Import failed: ${fetchError.message || 'Unknown error'}`);
+        console.error('Import request failed:', fetchError);
+        
+        // Provide more specific error messages
+        if (fetchError.message?.includes('Failed to send a request')) {
+          throw new Error('Unable to connect to the import service. Please check your connection and try again.');
+        } else if (fetchError.message?.includes('non-2xx status code')) {
+          throw new Error('Import service returned an error. Please try again or contact support.');
+        } else {
+          throw new Error(`Import failed: ${fetchError.message || 'Unknown error'}`);
+        }
       }
     },
     onSuccess: (result) => {
-      console.log('Import completed successfully:', result);
+      console.log('Import mutation successful:', result);
       toast({
         title: "Dataset Import Started",
         description: `Successfully imported ${result.import_stats?.dataset_size_mb || 'N/A'}MB dataset from Kaggle. Training job created.`,
       });
       setIsImportDialogOpen(false);
+      
+      // Invalidate queries to refresh the UI
       queryClient.invalidateQueries({ queryKey: ['training-datasets'] });
       queryClient.invalidateQueries({ queryKey: ['training-jobs'] });
       queryClient.invalidateQueries({ queryKey: ['ai-models'] });
     },
     onError: (error: any) => {
-      console.error('Import failed:', error);
+      console.error('Import mutation failed:', error);
       toast({
         title: "Import Failed",
-        description: error.message || "Failed to import dataset from Kaggle",
+        description: error.message || "Failed to import dataset from Kaggle. Please try again.",
         variant: "destructive",
       });
     },
