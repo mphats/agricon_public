@@ -145,7 +145,7 @@ export const modelTrainingService = {
           progress_percentage: progressSteps[i],
           logs: logMessages.slice(0, i + 1).join('\n'),
           ...(isComplete && {
-            status: 'completed',
+            status: 'processed',
             completed_at: new Date().toISOString()
           })
         })
