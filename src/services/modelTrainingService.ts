@@ -54,15 +54,23 @@ export const modelTrainingService = {
     return result.data;
   },
 
-  async createLocalTrainingJob(datasetId: string, userId: string): Promise<any> {
-    console.log('Creating local training job as fallback...', { datasetId, userId });
+  async createLocalTrainingJob(datasetName: string, userId: string): Promise<any> {
+    console.log('Creating local training job as fallback...', { datasetName, userId });
     
     try {
-      // Get dataset info
+      // Create a proper training dataset first
       const { data: dataset, error: datasetError } = await supabase
         .from('training_datasets')
-        .select('name, crop_type')
-        .eq('id', datasetId)
+        .insert({
+          name: datasetName || 'Fallback Training Dataset',
+          description: 'Local fallback training dataset created due to import service unavailability',
+          crop_type: 'other',
+          status: 'processing',
+          created_by: userId,
+          total_files: 1,
+          processed_files: 0
+        })
+        .select()
         .single();
 
       if (datasetError) throw datasetError;
@@ -75,7 +83,7 @@ export const modelTrainingService = {
           name: modelName,
           version: '1.0.0',
           model_type: 'plant_diagnosis',
-          dataset_id: datasetId,
+          dataset_id: dataset.id,
           status: 'training',
           training_started_at: new Date().toISOString(),
           created_by: userId,
@@ -93,7 +101,7 @@ export const modelTrainingService = {
       const { data: trainingJob, error: jobError } = await supabase
         .from('training_jobs')
         .insert({
-          dataset_id: datasetId,
+          dataset_id: dataset.id,
           model_id: model.id,
           status: 'processing',
           started_at: new Date().toISOString(),

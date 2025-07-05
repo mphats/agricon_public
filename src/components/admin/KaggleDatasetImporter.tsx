@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,9 +49,9 @@ export const KaggleDatasetImporter = () => {
         // Fallback to local training job creation
         if (user?.id) {
           try {
-            // Create a basic training dataset first
+            // Use the actual dataset name from the form
             const fallbackResult = await modelTrainingService.createLocalTrainingJob(
-              'fallback-dataset-id', 
+              data.trainDatasetName || data.datasetName, 
               user.id
             );
             
