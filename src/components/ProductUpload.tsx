@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { CameraImageUpload } from '@/components/CameraImageUpload';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Phone } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
 type CropType = Database['public']['Enums']['crop_type'];
@@ -32,7 +32,8 @@ export const ProductUpload = ({ isOpen, onClose }: ProductUploadProps) => {
     quality_grade: '',
     location_district: '',
     description: '',
-    harvest_date: ''
+    harvest_date: '',
+    phone_number: ''
   });
   const [productImages, setProductImages] = useState<string[]>([]);
 
@@ -51,6 +52,7 @@ export const ProductUpload = ({ isOpen, onClose }: ProductUploadProps) => {
           location_district: data.location_district,
           description: data.description || null,
           harvest_date: data.harvest_date || null,
+          phone_number: data.phone_number || null,
           images: data.images.length > 0 ? data.images : null,
           status: 'active'
         })
@@ -73,7 +75,8 @@ export const ProductUpload = ({ isOpen, onClose }: ProductUploadProps) => {
         quality_grade: '',
         location_district: '',
         description: '',
-        harvest_date: ''
+        harvest_date: '',
+        phone_number: ''
       });
       setProductImages([]);
       queryClient.invalidateQueries({ queryKey: ['market-listings'] });
@@ -121,19 +124,21 @@ export const ProductUpload = ({ isOpen, onClose }: ProductUploadProps) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <CardHeader>
+      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-gradient-to-b from-white to-green-50 border-green-200">
+        <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-t-lg">
           <div className="flex justify-between items-center">
-            <CardTitle>List Your Product</CardTitle>
-            <Button variant="ghost" size="sm" onClick={onClose}>
+            <div>
+              <CardTitle className="text-white">List Your Product</CardTitle>
+              <CardDescription className="text-green-100">
+                Add your crop to the marketplace
+              </CardDescription>
+            </div>
+            <Button variant="ghost" size="sm" onClick={onClose} className="text-white hover:bg-white/20">
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <CardDescription>
-            Add your crop to the marketplace
-          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -143,7 +148,7 @@ export const ProductUpload = ({ isOpen, onClose }: ProductUploadProps) => {
                 value={formData.crop_type} 
                 onValueChange={(value: CropType) => setFormData({...formData, crop_type: value})}
               >
-                <SelectTrigger>
+                <SelectTrigger className="border-green-200 focus:border-green-500">
                   <SelectValue placeholder="Select crop type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -171,6 +176,7 @@ export const ProductUpload = ({ isOpen, onClose }: ProductUploadProps) => {
                   placeholder="0"
                   min="0"
                   step="0.1"
+                  className="border-green-200 focus:border-green-500"
                 />
               </div>
               <div>
@@ -184,6 +190,7 @@ export const ProductUpload = ({ isOpen, onClose }: ProductUploadProps) => {
                   placeholder="0"
                   min="0"
                   step="0.01"
+                  className="border-green-200 focus:border-green-500"
                 />
               </div>
             </div>
@@ -196,7 +203,7 @@ export const ProductUpload = ({ isOpen, onClose }: ProductUploadProps) => {
                 value={formData.location_district} 
                 onValueChange={(value) => setFormData({...formData, location_district: value})}
               >
-                <SelectTrigger>
+                <SelectTrigger className="border-green-200 focus:border-green-500">
                   <SelectValue placeholder="Select district" />
                 </SelectTrigger>
                 <SelectContent>
@@ -212,12 +219,29 @@ export const ProductUpload = ({ isOpen, onClose }: ProductUploadProps) => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
+                Phone Number
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  type="tel"
+                  value={formData.phone_number}
+                  onChange={(e) => setFormData({...formData, phone_number: e.target.value})}
+                  placeholder="e.g., +265 999 123 456"
+                  className="pl-10 border-green-200 focus:border-green-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Quality Grade
               </label>
               <Input
                 value={formData.quality_grade}
                 onChange={(e) => setFormData({...formData, quality_grade: e.target.value})}
                 placeholder="e.g., Grade A, Premium"
+                className="border-green-200 focus:border-green-500"
               />
             </div>
 
@@ -229,6 +253,7 @@ export const ProductUpload = ({ isOpen, onClose }: ProductUploadProps) => {
                 type="date"
                 value={formData.harvest_date}
                 onChange={(e) => setFormData({...formData, harvest_date: e.target.value})}
+                className="border-green-200 focus:border-green-500"
               />
             </div>
 
@@ -241,6 +266,7 @@ export const ProductUpload = ({ isOpen, onClose }: ProductUploadProps) => {
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
                 placeholder="Additional details about your product..."
                 rows={3}
+                className="border-green-200 focus:border-green-500"
               />
             </div>
 
@@ -264,7 +290,7 @@ export const ProductUpload = ({ isOpen, onClose }: ProductUploadProps) => {
                       <img 
                         src={image} 
                         alt={`Product ${index + 1}`}
-                        className="w-full h-20 object-cover rounded"
+                        className="w-full h-20 object-cover rounded border-2 border-green-100"
                       />
                       <Button
                         type="button"
@@ -286,14 +312,14 @@ export const ProductUpload = ({ isOpen, onClose }: ProductUploadProps) => {
                 type="button" 
                 variant="outline" 
                 onClick={onClose}
-                className="flex-1"
+                className="flex-1 border-green-200 text-green-700 hover:bg-green-50"
               >
                 Cancel
               </Button>
               <Button 
                 type="submit"
                 disabled={createListing.isPending}
-                className="flex-1 bg-green-600 hover:bg-green-700"
+                className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
               >
                 {createListing.isPending ? (
                   <div className="flex items-center">
