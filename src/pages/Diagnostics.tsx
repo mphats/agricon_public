@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,6 @@ import { analyzePlantImage } from '@/utils/aiDiagnostics';
 import { ModelSelector } from '@/components/diagnostics/ModelSelector';
 import { ChatMessage } from '@/components/diagnostics/ChatMessage';
 import { ChatInput } from '@/components/diagnostics/ChatInput';
-import { useIsMobile } from '@/hooks/use-mobile';
 import type { Database } from '@/integrations/supabase/types';
 
 type CropType = Database['public']['Enums']['crop_type'];
@@ -36,7 +36,6 @@ const Diagnostics = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const isMobile = useIsMobile();
   
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
@@ -190,10 +189,10 @@ const Diagnostics = () => {
                   <Bot className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-green-700 to-emerald-600 bg-clip-text text-transparent">
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-green-700 to-emerald-600 bg-clip-text text-transparent">
                     AgriAI Assistant
                   </h1>
-                  <p className="text-xs md:text-sm text-green-600/70">Plant Disease Diagnosis & Care</p>
+                  <p className="text-sm text-green-600/70">Plant Disease Diagnosis & Care</p>
                 </div>
               </div>
             </div>
@@ -204,22 +203,22 @@ const Diagnostics = () => {
               className="flex items-center gap-2 border-green-200 hover:bg-green-50"
             >
               <Trash2 className="h-4 w-4" />
-              {!isMobile && <span>Clear Chat</span>}
+              Clear Chat
             </Button>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="relative container mx-auto px-4 py-3 md:py-6 max-w-5xl">
+      <div className="relative container mx-auto px-4 py-6 max-w-5xl">
         {/* Model Selection Card */}
-        <Card className="mb-4 md:mb-6 bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg">
-          <CardHeader className="pb-3 md:pb-4">
-            <CardTitle className="flex items-center gap-2 text-green-800 text-lg md:text-xl">
-              <Sparkles className="h-4 w-4 md:h-5 md:w-5 text-emerald-500" />
+        <Card className="mb-6 bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-green-800">
+              <Sparkles className="h-5 w-5 text-emerald-500" />
               AI Model Selection
             </CardTitle>
-            <CardDescription className="text-green-600/70 text-sm">
+            <CardDescription className="text-green-600/70">
               Choose a trained AI model for accurate plant disease diagnosis
             </CardDescription>
           </CardHeader>
@@ -232,32 +231,28 @@ const Diagnostics = () => {
         </Card>
 
         {/* Chat Interface */}
-        <div className={`flex flex-col bg-white/70 backdrop-blur-sm rounded-2xl border border-green-200/50 shadow-xl overflow-hidden ${
-          isMobile 
-            ? 'h-[calc(100vh-280px)] min-h-[400px]' // Mobile: Dynamic height based on viewport minus header/model selector
-            : 'h-[70vh] min-h-[500px]' // Desktop: Original height with minimum
-        }`}>
+        <div className="flex flex-col h-[70vh] bg-white/70 backdrop-blur-sm rounded-2xl border border-green-200/50 shadow-xl overflow-hidden">
           {/* Chat Header */}
-          <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-4 md:px-6 py-3 md:py-4 text-white flex-shrink-0">
+          <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4 text-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 md:w-10 md:h-10 bg-white/20 rounded-full flex items-center justify-center">
-                  <Bot className="h-4 w-4 md:h-5 md:w-5" />
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <Bot className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm md:text-base">AI Agricultural Assistant</h3>
-                  <p className="text-xs md:text-sm text-green-100">Ready to help with plant diagnostics</p>
+                  <h3 className="font-semibold">AI Agricultural Assistant</h3>
+                  <p className="text-sm text-green-100">Ready to help with plant diagnostics</p>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
-                <span className="text-xs md:text-sm text-green-100">Online</span>
+                <span className="text-sm text-green-100">Online</span>
               </div>
             </div>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4 md:space-y-6 bg-gradient-to-b from-green-50/30 to-emerald-50/30 min-h-0">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gradient-to-b from-green-50/30 to-emerald-50/30">
             {messages.map((message) => (
               <ChatMessage key={message.id} message={message} />
             ))}
@@ -274,7 +269,7 @@ const Diagnostics = () => {
           </div>
 
           {/* Input Area */}
-          <div className="border-t border-green-200/50 bg-white/80 backdrop-blur-sm p-3 md:p-4 flex-shrink-0">
+          <div className="border-t border-green-200/50 bg-white/80 backdrop-blur-sm p-4">
             <ChatInput
               onSendMessage={handleSendMessage}
               isLoading={createDiagnosis.isPending}
@@ -282,56 +277,54 @@ const Diagnostics = () => {
           </div>
         </div>
 
-        {/* Tips Section - Hide on mobile to save space */}
-        {!isMobile && (
-          <Card className="mt-6 bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-green-800">🌱 Tips for Better Diagnosis</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 gap-6 text-sm">
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-green-700 flex items-center gap-2">
-                    📸 Image Quality
-                  </h4>
-                  <ul className="space-y-2 text-green-600/80">
-                    <li className="flex items-start gap-2">
-                      <span className="text-green-500 mt-1">•</span>
-                      Use natural lighting or bright indoor light
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-green-500 mt-1">•</span>
-                      Focus on affected plant parts clearly
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-green-500 mt-1">•</span>
-                      Include leaves, stems, or fruits showing symptoms
-                    </li>
-                  </ul>
-                </div>
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-green-700 flex items-center gap-2">
-                    📝 Symptom Description
-                  </h4>
-                  <ul className="space-y-2 text-green-600/80">
-                    <li className="flex items-start gap-2">
-                      <span className="text-green-500 mt-1">•</span>
-                      Describe color changes, spots, or unusual growth
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-green-500 mt-1">•</span>
-                      Mention when symptoms first appeared
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-green-500 mt-1">•</span>
-                      Note recent weather or care changes
-                    </li>
-                  </ul>
-                </div>
+        {/* Tips Section */}
+        <Card className="mt-6 bg-white/70 backdrop-blur-sm border-green-200/50 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-green-800">🌱 Tips for Better Diagnosis</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-6 text-sm">
+              <div className="space-y-3">
+                <h4 className="font-semibold text-green-700 flex items-center gap-2">
+                  📸 Image Quality
+                </h4>
+                <ul className="space-y-2 text-green-600/80">
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-500 mt-1">•</span>
+                    Use natural lighting or bright indoor light
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-500 mt-1">•</span>
+                    Focus on affected plant parts clearly
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-500 mt-1">•</span>
+                    Include leaves, stems, or fruits showing symptoms
+                  </li>
+                </ul>
               </div>
-            </CardContent>
-          </Card>
-        )}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-green-700 flex items-center gap-2">
+                  📝 Symptom Description
+                </h4>
+                <ul className="space-y-2 text-green-600/80">
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-500 mt-1">•</span>
+                    Describe color changes, spots, or unusual growth
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-500 mt-1">•</span>
+                    Mention when symptoms first appeared
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-500 mt-1">•</span>
+                    Note recent weather or care changes
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <MobileNav />
