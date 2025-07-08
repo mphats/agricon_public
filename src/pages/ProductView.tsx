@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, MapPin, Calendar, Phone, Star, ShoppingCart, Share2, Heart, User } from 'lucide-react';
 import { MobileNav } from '@/components/MobileNav';
+import { useToast } from '@/hooks/use-toast';
 
 const ProductView = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const { data: product, isLoading } = useQuery({
     queryKey: ['product', id],
@@ -29,6 +31,72 @@ const ProductView = () => {
     },
     enabled: !!id,
   });
+
+  const handleContactSeller = () => {
+    const phoneNumber = product?.phone_number || product?.profiles?.phone_number;
+    if (phoneNumber) {
+      window.open(`tel:${phoneNumber}`, '_self');
+    } else {
+      toast({
+        title: "Contact Information Unavailable",
+        description: "No phone number available for this seller.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCallNow = () => {
+    const phoneNumber = product?.phone_number || product?.profiles?.phone_number;
+    if (phoneNumber) {
+      window.open(`tel:${phoneNumber}`, '_self');
+    } else {
+      toast({
+        title: "Phone Number Unavailable",
+        description: "No phone number available for direct calling.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    const title = `${product?.crop_type} - MWK ${product?.price_per_kg}/kg`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: title,
+          text: `Check out this ${product?.crop_type} listing on AgroMarket`,
+          url: url,
+        });
+      } catch (error) {
+        console.log('Error sharing:', error);
+      }
+    } else {
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(url);
+        toast({
+          title: "Link Copied",
+          description: "Product link has been copied to clipboard.",
+        });
+      } catch (error) {
+        toast({
+          title: "Share Failed",
+          description: "Unable to share or copy link.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleToggleFavorite = () => {
+    // For now, just show a toast - in a real app, this would save to user's favorites
+    toast({
+      title: "Added to Favorites",
+      description: `${product?.crop_type} has been added to your favorites.`,
+    });
+  };
 
   if (isLoading) {
     return (
@@ -72,10 +140,20 @@ const ProductView = () => {
               </Button>
             </div>
             <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-white hover:bg-white/20"
+                onClick={handleShare}
+              >
                 <Share2 className="h-5 w-5" />
               </Button>
-              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-white hover:bg-white/20"
+                onClick={handleToggleFavorite}
+              >
                 <Heart className="h-5 w-5" />
               </Button>
             </div>
@@ -166,10 +244,10 @@ const ProductView = () => {
                       <span className="font-medium">{product.location_district}</span>
                     </div>
                     
-                    {product.phone_number && (
+                    {(product.phone_number || product.profiles?.phone_number) && (
                       <div className="flex items-center text-gray-600">
                         <Phone className="h-5 w-5 mr-3 text-green-600" />
-                        <span className="font-medium">{product.phone_number}</span>
+                        <span className="font-medium">{product.phone_number || product.profiles?.phone_number}</span>
                       </div>
                     )}
                     
@@ -219,6 +297,7 @@ const ProductView = () => {
                     <Button 
                       size="lg" 
                       className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3"
+                      onClick={handleContactSeller}
                     >
                       <ShoppingCart className="h-5 w-5 mr-2" />
                       Contact Seller
@@ -227,6 +306,7 @@ const ProductView = () => {
                       size="lg" 
                       variant="outline" 
                       className="border-green-300 text-green-700 hover:bg-green-50"
+                      onClick={handleCallNow}
                     >
                       <Phone className="h-5 w-5 mr-2" />
                       Call Now

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { TrendingUp, Search, MapPin, Calendar, Plus, Filter, Star, ShoppingCart, Eye, Heart } from 'lucide-react';
+import { TrendingUp, Search, MapPin, Calendar, Plus, Filter, Star, ShoppingCart, Eye, Heart, Phone } from 'lucide-react';
 import { MobileNav } from '@/components/MobileNav';
 import { PriceTrendChart } from '@/components/PriceTrendChart';
 import { MarketInsights } from '@/components/MarketInsights';
@@ -13,11 +13,13 @@ import { CropCard } from '@/components/CropCard';
 import { ProductUpload } from '@/components/ProductUpload';
 import { generateMarketInsights } from '@/utils/marketInsights';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 type CropType = 'maize' | 'beans' | 'vegetables' | 'cassava' | 'rice' | 'tobacco' | 'groundnuts' | 'soybean' | 'cotton' | 'other';
 
 const Market = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('all');
   const [selectedCrop, setSelectedCrop] = useState<CropType | 'all'>('all');
@@ -120,6 +122,26 @@ const Market = () => {
   const rankedCrops = Object.values(cropRankings)
     .sort((a, b) => b.price_per_kg - a.price_per_kg)
     .map((crop, index) => ({ ...crop, rank: index + 1 }));
+
+  const handleContactSeller = (phoneNumber: string | null, cropType: string) => {
+    if (phoneNumber) {
+      window.open(`tel:${phoneNumber}`, '_self');
+    } else {
+      toast({
+        title: "Contact Information Unavailable",
+        description: `No phone number available for this ${cropType} listing.`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleFavorite = (listingId: string, cropType: string) => {
+    // For now, just show a toast - in a real app, this would save to user's favorites
+    toast({
+      title: "Added to Favorites",
+      description: `${cropType} has been added to your favorites.`,
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -274,7 +296,12 @@ const Market = () => {
                     </div>
                     
                     <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button size="sm" variant="outline" className="h-8 w-8 p-0 bg-white/90 hover:bg-white">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-8 w-8 p-0 bg-white/90 hover:bg-white"
+                        onClick={() => handleToggleFavorite(listing.id, listing.crop_type)}
+                      >
                         <Heart className="h-4 w-4" />
                       </Button>
                     </div>
@@ -342,8 +369,12 @@ const Market = () => {
                       
                       {/* Action Buttons */}
                       <div className="flex space-x-2 pt-3">
-                        <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700">
-                          <ShoppingCart className="h-4 w-4 mr-1" />
+                        <Button 
+                          size="sm" 
+                          className="flex-1 bg-green-600 hover:bg-green-700"
+                          onClick={() => handleContactSeller(listing.phone_number, listing.crop_type)}
+                        >
+                          <Phone className="h-4 w-4 mr-1" />
                           Contact
                         </Button>
                         <Button 
