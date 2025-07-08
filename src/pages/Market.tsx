@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,10 +12,12 @@ import { MarketInsights } from '@/components/MarketInsights';
 import { CropCard } from '@/components/CropCard';
 import { ProductUpload } from '@/components/ProductUpload';
 import { generateMarketInsights } from '@/utils/marketInsights';
+import { useNavigate } from 'react-router-dom';
 
 type CropType = 'maize' | 'beans' | 'vegetables' | 'cassava' | 'rice' | 'tobacco' | 'groundnuts' | 'soybean' | 'cotton' | 'other';
 
 const Market = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('all');
   const [selectedCrop, setSelectedCrop] = useState<CropType | 'all'>('all');
@@ -345,7 +346,12 @@ const Market = () => {
                           <ShoppingCart className="h-4 w-4 mr-1" />
                           Contact
                         </Button>
-                        <Button size="sm" variant="outline" className="px-3">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="px-3"
+                          onClick={() => navigate(`/market/product/${listing.id}`)}
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
                       </div>
